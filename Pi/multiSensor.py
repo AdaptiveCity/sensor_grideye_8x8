@@ -47,6 +47,8 @@ dots=None
 
 EVENT_S="START"
 EVENT_F="FINISH"
+MIN_TEMP=16
+MAX_TEMP=30
 
 color_pallete=[
 [ 32 , 17 , 89 ],
@@ -177,7 +179,7 @@ class Sensor(object):
         def update_LED(self, pixels):
             i=0
             for pixel in pixels:       
-                remap=interp(pixel,[16,30],[0,63]).astype(np.int)      
+                remap=interp(pixel,[MIN_TEMP,MAX_TEMP],[0,63]).astype(np.int)      
                 colors=color_pallete[remap]
                 dots[i] = (colors[0], colors[1], colors[2])
                 i+=1
@@ -188,7 +190,7 @@ class Sensor(object):
 
 
         def latest_buffer_val(self):
-            sample_value, offset = self.sample_buffer.median(0,0.35)
+            sample_value, offset = self.sample_buffer.median(0,1)
              #get median weight for 1s
             latest_sample=self.sample_buffer.get(0)["value"]
             #print(sample_value, latest_sample)
@@ -229,8 +231,8 @@ class Sensor(object):
 
             
         def test_event(self, ts):
-            event_S=self.test_walk_med(0,0.25)#0.5
-            event_F=self.test_walk_med(0,1)#2
+            event_S=self.test_walk_med(0,0.5)#0.5
+            event_F=self.test_walk_med(0,2)#2
            # ts=time.time()
 
            # print("S,F: ", event_S,event_F)    
@@ -239,10 +241,8 @@ class Sensor(object):
             if not event_S is None:
                # print("event delta ", event_S-16)
                 
-                if (event_S>3 and self.event_buffer.get(0)["value"]!=EVENT_S):#event_S>40
+                if (event_S>0.3 and self.event_buffer.get(0)["value"]!=EVENT_S):#event_S>40
                     print("NEW Started")
-                    self.chart.next(1000)
-                    
                     self.event_start=ts
                     self.event_buffer.put(ts,EVENT_S)
                     self.send_event(ts,EVENT_S,0,0,0,0)
@@ -251,16 +251,15 @@ class Sensor(object):
             if not event_F is None and not event_S is None:
             
                 if(self.event_buffer.get(0)["value"]!=EVENT_F and self.event_buffer.get(0)["value"]!="Begin"):
-                    if (event_F<1 and event_S<1) :#if (event_F<10 and event_S is None)
-                        self.chart.next(1000)
+                    if (event_F<0.3 and event_S<0.4) :#if (event_F<10 and event_S is None)
                     
                         self.event_finished=ts
                         print("NEW Finished")
                         dur=  self.event_finished- self.event_start
                         
-                        med,a=self.raw_buffer.median(0,dur+0.5)
-                        mean,a=self.raw_buffer.average(0,dur+0.5)
-                        max_val,a=self.raw_buffer.maximum(0,dur+0.5)
+                        med=99#med,a=self.raw_buffer.median(0,dur+0.5)
+                        mean=99#self.raw_buffer.average(0,dur+0.5)
+                        max_val=99#self.raw_buffer.maximum(0,dur+0.5)
                         if(max_val<16):
                             max_val=16
                         self.event_buffer.put(ts,EVENT_F)
@@ -273,7 +272,7 @@ class Sensor(object):
           
             #return event
 
-        def print_buffer():
+        def print_buffer(self):
             for i in range(self.SAMPLE_EVENT_SIZE):
                 if not self.event_buffer.get(i) is None:
                     print(self.event_buffer.get(i))
@@ -290,14 +289,14 @@ class Sensor(object):
             return value
             
         def normalize_sample(self, value):
-            #print(value)
+            print(value)
             #value=value -16
-            if(value<16):
+            if(value<MIN_TEMP):
                 return 0
-            elif(value>30):
+            elif(value>MAX_TEMP):
                 return 1
             else:
-                 return (value-16)/(30-16)
+                 return (value-MIN_TEMP)/(MAX_TEMP-MIN_TEMP)
     
         def process_sample(self, ts,value):
            
@@ -309,7 +308,7 @@ class Sensor(object):
             #raw value
             self.raw_buffer.put(ts,value)
             
-            value=self.moving_average(value, 0.05,1)#0.05,20
+            value=self.moving_average(value, 0.05,0.15)#0.05,20
             #print(og,value)
             self.sample_buffer.put(ts,value)
 
@@ -352,7 +351,7 @@ class Sensor(object):
                                                                       }
                                                                     ]
                                             }
-               self.send_data(post_data, ACP_TOKEN)
+               #self.send_data(post_data, ACP_TOKEN)
                self.prev_send_time = ts              
               # time.sleep(0.1)
                
@@ -407,6 +406,11 @@ def loop():
                      foo=LOOP_TIME-(now-start_time)
                      if foo>0:
                           time.sleep(foo)
+                     if counter>15:
+                         g.print_buffer()
+                         counter=0
+                     counter+=1
+                     
         except (KeyboardInterrupt, SystemExit):
                pass
                g.finish()
