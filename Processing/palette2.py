@@ -1,24 +1,4 @@
-import time
-import random
-import board
-import busio
-import adafruit_amg88xx
-import adafruit_dotstar as dotstar
-import math
-import numpy as np
-from numpy import interp
-
-
-
-i2c = busio.I2C(board.SCL, board.SDA)
-amg = adafruit_amg88xx.AMG88XX(i2c)#had to modify smbus.py
-
- 
-# On-board DotStar for boards including Gemma, Trinket, and ItsyBitsy
-dots = dotstar.DotStar(board.SCK, board.MOSI, 64, brightness=0.25)
-# MAIN LOOP
-
-color_pallete=[
+ color_palette=[
 [ 32 , 17 , 89 ],
 [ 27 , 17 , 89 ],
 [ 22 , 17 , 90 ],
@@ -82,22 +62,4 @@ color_pallete=[
 [ 99 , 27 , 1 ],
 [ 99 , 20 , 0 ],
 [ 99 , 13 , 0 ],
-[ 100 , 6 , 0 ]]
-
-#print(color_pallete)
-
-while True:
-    pixels=[]
-
-    pixels=np.array(amg.pixels).flatten()#np.squeeze(np.asarray(amg.pixels))
-  
-    i=0
-    for pixel in pixels:       
-        remap=interp(pixel,[16,30],[0,63]).astype(np.int)      
-        colors=color_pallete[remap]
-        dots[i] = (colors[0], colors[1], colors[2])
-        i+=1
-        
-   # time.sleep(0.01);
-    
-   
+[ 100 , 6 , 0 ]

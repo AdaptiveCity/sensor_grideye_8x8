@@ -78,7 +78,8 @@ while True:
     rows = []
     print(np.array(amg.pixels))
     img8x8 = np.array(color_palette)[np.interp(np.array(amg.pixels),[10,30],[0,63]).astype(np.int)].astype(np.float)
-    img256x256 = cv2.resize(img8x8, (256, 256))
-    cv2.imshow('thermal', img256x256)
-    cv2.waitKey(1)
-    time.sleep(0.5)
+    #print(img8x8,"\n")
+    #img256x256 = cv2.resize(img8x8, (256, 256))
+    #cv2.imshow('thermal', img256x256)
+    #cv2.waitKey(1)
+    #time.sleep(0.5)
